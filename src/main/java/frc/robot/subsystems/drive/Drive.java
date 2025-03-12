@@ -31,6 +31,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Twist2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
+import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.numbers.N1;
@@ -39,12 +40,17 @@ import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
+import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.Constants;
+import frc.robot.Constants.*;
 import frc.robot.Constants.Mode;
+import frc.robot.subsystems.vision.VisionIO;
+import frc.robot.subsystems.vision.VisionIOInputsAutoLogged;
 import frc.robot.util.LocalADStarAK;
+import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.littletonrobotics.junction.AutoLogOutput;
@@ -59,6 +65,9 @@ public class Drive extends SubsystemBase {
   private final Alert gyroDisconnectedAlert =
       new Alert("Disconnected gyro, using kinematics as fallback.", AlertType.kError);
 
+  private final VisionIO visionIO;
+  private final VisionIOInputsAutoLogged visionInputs = new VisionIOInputsAutoLogged();
+
   private SwerveDriveKinematics kinematics = new SwerveDriveKinematics(moduleTranslations);
   private Rotation2d rawGyroRotation = new Rotation2d();
   private SwerveModulePosition[] lastModulePositions = // For delta tracking
@@ -71,17 +80,24 @@ public class Drive extends SubsystemBase {
   private SwerveDrivePoseEstimator poseEstimator =
       new SwerveDrivePoseEstimator(kinematics, rawGyroRotation, lastModulePositions, new Pose2d());
 
+  // Odometry class for tracking robot pose
+  private SwerveDriveOdometry odometry =
+      new SwerveDriveOdometry(kinematics, rawGyroRotation, lastModulePositions);
+
   public Drive(
       GyroIO gyroIO,
       ModuleIO flModuleIO,
       ModuleIO frModuleIO,
       ModuleIO blModuleIO,
-      ModuleIO brModuleIO) {
+      ModuleIO brModuleIO,
+      VisionIO visionIO) {
     this.gyroIO = gyroIO;
     modules[0] = new Module(flModuleIO, 0);
     modules[1] = new Module(frModuleIO, 1);
     modules[2] = new Module(blModuleIO, 2);
     modules[3] = new Module(brModuleIO, 3);
+
+    this.visionIO = visionIO;
 
     // Usage reporting for swerve template
     HAL.report(tResourceType.kResourceType_RobotDrive, tInstances.kRobotDriveSwerve_AdvantageKit);
@@ -180,6 +196,29 @@ public class Drive extends SubsystemBase {
 
     // Update gyro alert
     gyroDisconnectedAlert.set(!gyroInputs.connected && Constants.currentMode != Mode.SIM);
+
+    boolean useVision = false;
+    if (useVision) {
+      if (RobotBase.isSimulation()) {
+        visionIO.updateInputs(visionInputs, getPose(), odometry.getPoseMeters());
+      } else {
+        visionIO.updateInputs(visionInputs, getPose(), rawGyroRotation);
+      }
+      Logger.processInputs("Vision", visionInputs);
+      if (visionInputs.hasEstimate) {
+        List<Matrix<N3, N1>> stdDeviations = visionIO.getStdArray(visionInputs, getPose());
+
+        for (int i = 0; i < visionInputs.estimate.length; i++) {
+          if (visionInputs.estimate[i].equals(new Pose2d())) continue; // Camera i has no estimate
+          else if (stdDeviations.size() <= i || visionInputs.timestampArray.length <= i)
+            continue; // Avoids index out of bounds exceptions
+          else {
+            poseEstimator.addVisionMeasurement(
+                visionInputs.estimate[i], visionInputs.timestampArray[i], stdDeviations.get(i));
+          }
+        }
+      }
+    }
   }
 
   /**
@@ -229,6 +268,16 @@ public class Drive extends SubsystemBase {
     }
     kinematics.resetHeadings(headings);
     stop();
+  }
+
+  /**
+   * Adds a vision measurement to the pose estimator.
+   *
+   * @param visionPose The pose of the robot as measured by the vision camera.
+   * @param timestamp The timestamp of the vision measurement in seconds.
+   */
+  public void addVisionMeasurement(Pose2d visionPose, double timestamp) {
+    poseEstimator.addVisionMeasurement(visionPose, timestamp);
   }
 
   /** Returns a command to run a quasistatic test in the specified direction. */
