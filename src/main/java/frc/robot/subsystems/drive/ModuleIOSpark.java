@@ -19,13 +19,11 @@ import static frc.robot.util.SparkUtil.*;
 import com.revrobotics.AbsoluteEncoder;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.ClosedLoopSlot;
-import com.revrobotics.spark.SparkBase;
 import com.revrobotics.spark.SparkBase.ControlType;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.SparkClosedLoopController.ArbFFUnits;
-import com.revrobotics.spark.SparkFlex;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.ClosedLoopConfig.FeedbackSensor;
@@ -46,8 +44,8 @@ public class ModuleIOSpark implements ModuleIO {
   private final Rotation2d zeroRotation;
 
   // Hardware objects
-  private final SparkBase driveSpark;
-  private final SparkBase turnSpark;
+  private final SparkMax driveSpark;
+  private final SparkMax turnSpark;
   private final RelativeEncoder driveEncoder;
   private final AbsoluteEncoder turnEncoder;
 
@@ -74,7 +72,7 @@ public class ModuleIOSpark implements ModuleIO {
           default -> new Rotation2d();
         };
     driveSpark =
-        new SparkFlex(
+        new SparkMax(
             switch (module) {
               case 0 -> frontLeftDriveCanId;
               case 1 -> frontRightDriveCanId;
