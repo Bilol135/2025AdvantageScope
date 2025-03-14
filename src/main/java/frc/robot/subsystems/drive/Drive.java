@@ -197,7 +197,7 @@ public class Drive extends SubsystemBase {
     // Update gyro alert
     gyroDisconnectedAlert.set(!gyroInputs.connected && Constants.currentMode != Mode.SIM);
 
-    boolean useVision = false;
+    boolean useVision = true;
     if (useVision) {
       if (RobotBase.isSimulation()) {
         visionIO.updateInputs(visionInputs, getPose(), odometry.getPoseMeters());
