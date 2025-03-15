@@ -1,50 +1,216 @@
-// Copyright 2021-2025 FRC 6328
-// http://github.com/Mechanical-Advantage
-//
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// version 3 as published by the Free Software Foundation or
-// available in the root directory of this project.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-
 package frc.robot.subsystems.drive;
-
-import static frc.robot.subsystems.drive.DriveConstants.*;
 
 import com.studica.frc.AHRS;
 import com.studica.frc.AHRS.NavXComType;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.ADXRS450_Gyro;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import java.util.Queue;
+import org.littletonrobotics.junction.Logger;
 
-/** IO implementation for NavX. */
+/**
+ * Wrapper class for the navX-MXP and ADXRS450_Gyro
+ *
+ * <p>Mostly utilizes the navX-MXP, but uses the ADXRS450 as backup if it disconnects
+ */
 public class GyroIONavX implements GyroIO {
-  private final AHRS navX = new AHRS(NavXComType.kMXP_SPI, (byte) odometryFrequency);
+  // this class is not like the other Advantage Kit classes because we only want it
+  // to run on the real robot
+  // we can log all this stuff else where if we want to test it
+  private static GyroIONavX instance = new GyroIONavX();
+
+  private final AHRS navx;
+  private double resetRoll;
+  private double resetPitch;
+  private double resetYaw;
+
   private final Queue<Double> yawPositionQueue;
   private final Queue<Double> yawTimestampQueue;
+  private final ADXRS450_Gyro gyro;
 
   public GyroIONavX() {
+    navx = new AHRS(NavXComType.kMXP_SPI);
+    resetRoll = 0;
+    resetPitch = 0;
+    resetYaw = 0;
+    navx.reset();
+
+    gyro = new ADXRS450_Gyro();
+    gyro.calibrate();
+    yawPositionQueue = SparkOdometryThread.getInstance().registerSignal(() -> getYawAngle());
     yawTimestampQueue = SparkOdometryThread.getInstance().makeTimestampQueue();
-    yawPositionQueue = SparkOdometryThread.getInstance().registerSignal(navX::getAngle);
   }
 
   @Override
   public void updateInputs(GyroIOInputs inputs) {
-    inputs.connected = navX.isConnected();
-    inputs.yawPosition = Rotation2d.fromDegrees(-navX.getAngle());
-    inputs.yawVelocityRadPerSec = Units.degreesToRadians(-navX.getRawGyroZ());
+    inputs.connected = navx.isConnected();
+    Logger.recordOutput("OtherGyro", gyro.getAngle());
+    Logger.recordOutput("Drive/Gyro Calibrating", navx.isCalibrating());
+    inputs.yawPosition = Rotation2d.fromDegrees(getYawAngle());
+    inputs.yawVelocityRadPerSec = Units.degreesToRadians(getYawAngleVelocity());
 
     inputs.odometryYawTimestamps =
         yawTimestampQueue.stream().mapToDouble((Double value) -> value).toArray();
     inputs.odometryYawPositions =
         yawPositionQueue.stream()
-            .map((Double value) -> Rotation2d.fromDegrees(-value))
+            .map((Double value) -> Rotation2d.fromDegrees(value))
             .toArray(Rotation2d[]::new);
     yawTimestampQueue.clear();
     yawPositionQueue.clear();
+  }
+
+  /**
+   * Gets the current yaw angle.
+   *
+   * @return The angle in degrees limited to the range -180 to 180.
+   */
+  @Override
+  public double getYawAngle() {
+    double angle = navx.getAngle() - resetYaw;
+    while (angle <= -180) angle += 360;
+    while (angle > 180) angle -= 360;
+
+    return -angle;
+  }
+
+  /**
+   * Gets the current yaw angle velocity in deg / s
+   *
+   * @return The yaw angle rate in degrees.
+   */
+  public double getYawAngleVelocity() {
+    return navx.getRate();
+  }
+
+  /**
+   * Gets the current roll angle.
+   *
+   * @return The angle in degrees.
+   */
+  public double getRollAngle() {
+    return navx.getRoll() - resetRoll;
+  }
+
+  /**
+   * Gets the current pitch angle.
+   *
+   * @return The angle in degrees.
+   */
+  public double getPitchAngle() {
+    return navx.getPitch() - resetPitch;
+  }
+
+  /** Sets the current yaw angle to "0". */
+  public void zeroYawAngle() {
+    // navx.setAngleAdjustment(-navx.getAngle());
+    resetYaw = navx.getAngle();
+  }
+
+  /** Sets the current yaw angle to angle. */
+  public void setYawAngle(double angle) {
+    // navx.setAngleAdjustment(angle - navx.getAngle());
+    resetYaw = navx.getAngle() - angle;
+  }
+
+  public void setRollAngle(double angle) {
+    resetRoll = navx.getAngle() - angle;
+  }
+
+  /** Sets the current roll angle to "0". */
+  public void zeroRollAngle() {
+    resetRoll = getRollAngle();
+  }
+
+  /** Sets the current pitch angle to "0". */
+  public void zeroPitchAngle() {
+    resetPitch = getPitchAngle();
+  }
+
+  /**
+   * Gets the current rotation of the robot.
+   *
+   * @return The angle in degrees.
+   */
+  public double getRobotAngle() {
+    return getYawAngle();
+  }
+
+  /**
+   * Gets the current rotation rate of the robot in deg/s
+   *
+   * @return The angle rate in degrees.
+   */
+  public double getRobotAngleVelocity() {
+    return getYawAngleVelocity();
+  }
+
+  /**
+   * Gets the current tilt of the robot. Utilizes the NavX if it is connected, but otherwise it will
+   * use the backup gyro
+   *
+   * @return THe angle in degrees
+   */
+  public double getTiltAngle() {
+    if (navXConnected()) {
+      return getPitchAngle();
+    } else {
+      return -gyro.getAngle();
+    }
+  }
+
+  /** Sets the current rotation of the robot to "0". */
+  public void zeroRobotAngle() {
+    zeroYawAngle();
+  }
+
+  /** Sets the current rotation of the robot to a given value. */
+  public void setRobotAngle(double angle) {
+    setYawAngle(angle);
+  }
+
+  /** Sets the current tilt of the robot to "0". */
+  public void zeroTiltAngle() {
+    zeroPitchAngle();
+    gyro.reset();
+  }
+
+  /** Zeroes roll, pitch, and yaw angle of gyro */
+  public void zeroAll() {
+    zeroYawAngle();
+    zeroPitchAngle();
+    zeroRollAngle();
+  }
+
+  /**
+   * Returns whether or not the NavX is currently connected and sending valid data
+   *
+   * @return whether or not the NavX is currently connected
+   */
+  public boolean navXConnected() {
+    return navx.isConnected();
+  }
+
+  /** Displays the angles on {@code SmartDashboard}. */
+  public void outputValues() {
+    SmartDashboard.putNumber("/Gyro/Yaw Angle", getYawAngle());
+    SmartDashboard.putNumber("/Gyro/Roll Angle", getRollAngle());
+    SmartDashboard.putNumber("/Gyro/Pitch Angle", getPitchAngle());
+
+    SmartDashboard.putNumber("Robot Angle", getRobotAngle());
+    SmartDashboard.putNumber("Robot Angle Vel", getRobotAngleVelocity());
+    // SmartDashboard.putNumber("Tilt Angle", getTiltAngle());
+    SmartDashboard.putBoolean("Gyro Connected", navXConnected());
+  }
+
+  public static GyroIONavX getInstance() {
+    if (instance == null) {
+      instance = new GyroIONavX();
+    }
+    return instance;
+  }
+
+  public ADXRS450_Gyro getGyro() {
+    return gyro;
   }
 }

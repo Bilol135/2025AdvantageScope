@@ -22,6 +22,8 @@ public class ElevatorModule implements ElevatorIO {
   private final SparkClosedLoopController leftElevatorMotorController;
   private final SparkClosedLoopController rightElevatorMotorController;
 
+  public static double currentSetpoint = 0;
+
   // private final double countsPerInch = 42.0;
   private final double gravityCompensation = 0.1; // Tune this value - usually between 0.05-0.2
 
@@ -87,7 +89,7 @@ public class ElevatorModule implements ElevatorIO {
     // motorOutput = Math.min(Math.max(motorOutput, -1.0), 1.0);
 
     // leftElevatorMotor.set(motorOutput);
-
+    currentSetpoint = position;
     leftElevatorMotorController.setReference(
         position, ControlType.kPosition, ClosedLoopSlot.kSlot0, ElevatorConstants.kFF);
     // rightElevatorMotorController.setReference(
@@ -96,6 +98,17 @@ public class ElevatorModule implements ElevatorIO {
 
     // new ElevatorFeedforward(1.175,1.625,4.6,0.15).calculate(0));
 
+  }
+
+  @Override
+  public void updateInputs(ElevatorIOInputs inputs) {
+    inputs.setpointMeters = getSetpoint();
+    inputs.positionMeters = getElevatorPosition();
+  }
+
+  @Override
+  public double getSetpoint() {
+    return currentSetpoint;
   }
 
   @Override

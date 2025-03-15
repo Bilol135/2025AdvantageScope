@@ -17,6 +17,7 @@ import com.pathplanner.lib.auto.AutoBuilder;
 import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
@@ -136,9 +137,11 @@ public class RobotContainer {
     drive.setDefaultCommand(
         DriveCommands.joystickDrive(
             drive,
-            () -> -Dcontroller.getLeftY(),
-            () -> -Dcontroller.getLeftX(),
+            () -> Dcontroller.getLeftY(),
+            () -> Dcontroller.getLeftX(),
             () -> -Dcontroller.getRightX()));
+
+    Dcontroller.b().onTrue(new InstantCommand(DriveCommands::slowModeToggle));
 
     // // Lock to 0° when A button is held
     // controller
@@ -181,8 +184,8 @@ public class RobotContainer {
         .y()
         .onTrue(
             m_elevator
-                .setElevatorPosition(4.1)
-                .alongWith(m_coralIntake.setPivotPosition(4.8).withTimeout(1)));
+                .setElevatorPosition(4.3)
+                .alongWith(m_coralIntake.setPivotPosition(4.9).withTimeout(1)));
 
     // when the A button is held down, the elevator is set to level 0 and the coral intake is set to
     // pivot position 0
