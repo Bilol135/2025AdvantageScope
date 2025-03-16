@@ -14,6 +14,8 @@
 package frc.robot.commands;
 
 import static frc.robot.subsystems.drive.DriveConstants.kslowModeConstant;
+import static frc.robot.subsystems.drive.DriveConstants.speedIndex;
+
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.ProfiledPIDController;
@@ -30,6 +32,7 @@ import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.StartEndCommand;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.subsystems.drive.DriveConstants;
 import java.text.DecimalFormat;
@@ -49,7 +52,7 @@ public class DriveCommands {
   private static final double FF_RAMP_RATE = 0.1; // Volts/Sec
   private static final double WHEEL_RADIUS_MAX_VELOCITY = 0.25; // Rad/Sec
   private static final double WHEEL_RADIUS_RAMP_RATE = 0.05; // Rad/Sec^2
-  public static double slowMode = 1;
+
 
   private DriveCommands() {}
 
@@ -80,10 +83,10 @@ public class DriveCommands {
           // Get linear velocity
           Translation2d linearVelocity =
               getLinearVelocityFromJoysticks(
-                  xSupplier.getAsDouble() * slowMode, ySupplier.getAsDouble() * slowMode);
+                  xSupplier.getAsDouble() * speedIndex, ySupplier.getAsDouble() * speedIndex);
 
           // Apply rotation deadband
-          double omega = MathUtil.applyDeadband(omegaSupplier.getAsDouble() * slowMode, DEADBAND);
+          double omega = MathUtil.applyDeadband(omegaSupplier.getAsDouble() * speedIndex, DEADBAND);
 
           // Square rotation value for more precise control
           omega = Math.copySign(omega * omega, omega);
@@ -133,7 +136,7 @@ public class DriveCommands {
               // Get linear velocity
               Translation2d linearVelocity =
                   getLinearVelocityFromJoysticks(
-                      xSupplier.getAsDouble() * slowMode, ySupplier.getAsDouble() * slowMode);
+                      xSupplier.getAsDouble() * speedIndex, ySupplier.getAsDouble() * speedIndex);
 
               // Calculate angular speed
               double omega =
@@ -301,15 +304,16 @@ public class DriveCommands {
     double gyroDelta = 0.0;
   }
 
-  public static void slowModeToggle() {
-    if (slowMode == 1) {
-      slowMode = kslowModeConstant;
-    } else {
-      slowMode = 1;
-    }
+  public static double getSlowMode(){
+    return speedIndex;
   }
 
-  public static double getSlowMode() {
-    return slowMode;
-  }
+public static StartEndCommand slowMode(Drive drive) {
+  return new StartEndCommand(
+    () -> drive.applySlowMode(), 
+    () -> drive.resetSpeedIndex(), 
+    drive);
+}
+
+
 }

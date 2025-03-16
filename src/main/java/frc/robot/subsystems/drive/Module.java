@@ -128,4 +128,8 @@ public class Module {
   public double getFFCharacterizationVelocity() {
     return inputs.driveVelocityRadPerSec;
   }
+
+  public double getVelocity() {
+    return inputs.driveVelocityRadPerSec;
+  }
 }
