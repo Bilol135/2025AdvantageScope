@@ -1,29 +1,17 @@
 package frc.robot.subsystems.vision;
 
-import static frc.robot.subsystems.vision.VisionConstants.AMBIGUITY_THRESHOLD;
-import static frc.robot.subsystems.vision.VisionConstants.camNames;
-import static frc.robot.subsystems.vision.VisionConstants.camsRobotToCam;
-import static frc.robot.subsystems.vision.VisionConstants.kTagLayout;
-import static frc.robot.subsystems.vision.VisionConstants.numCameras;
-
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
-
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.subsystems.drive.GyroIO;
 
-
 public class VisionIOLimelight extends SubsystemBase {
-
 
   private SwerveDrivePoseEstimator poseEstimator;
   private GyroIO gyroIO;
 
-  
+  public VisionIOLimelight() {}
 
-  public VisionIOLimelight() {
-  
-  }
   /** Updates the field relative position of the robot. */
   public void updateOdometry(SwerveDrivePoseEstimator poseEstimator, GyroIO gyroIO) {
 
@@ -74,7 +62,4 @@ public class VisionIOLimelight extends SubsystemBase {
       }
     }
   }
-
-  
-
 }

@@ -44,7 +44,6 @@ import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
-import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -56,13 +55,10 @@ import frc.robot.Constants.Mode;
 import frc.robot.FieldConstants;
 import frc.robot.commands.AlignToPose;
 import frc.robot.commands.DriveCommands;
-import frc.robot.subsystems.vision.LimelightHelpers;
-import frc.robot.subsystems.vision.VisionIO;
 import frc.robot.subsystems.vision.VisionIOInputsAutoLogged;
 import frc.robot.subsystems.vision.VisionIOLimelight;
 import frc.robot.util.AllianceFlipUtil;
 import frc.robot.util.LocalADStarAK;
-import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.littletonrobotics.junction.AutoLogOutput;
@@ -165,6 +161,8 @@ public class Drive extends SubsystemBase {
                 (voltage) -> runCharacterization(voltage.in(Volts)), null, this));
   }
 
+  
+
   @Override
   public void periodic() {
     odometryLock.lock(); // Prevents odometry updates while reading data
@@ -224,8 +222,8 @@ public class Drive extends SubsystemBase {
     gyroDisconnectedAlert.set(!gyroInputs.connected && Constants.currentMode != Mode.SIM);
 
     if (DriveConstants.useVision) {
-    poseEstimator.update(gyroIO.getRotation2D(), getModulePositions());
-    visionIO.updateOdometry(poseEstimator, gyroIO);
+      poseEstimator.update(gyroIO.getRotation2D(), getModulePositions());
+      visionIO.updateOdometry(poseEstimator, gyroIO);
     }
 
     // if (DriveConstants.useVision) {
@@ -239,7 +237,8 @@ public class Drive extends SubsystemBase {
     //     List<Matrix<N3, N1>> stdDeviations = visionIO.getStdArray(visionInputs, getPose());
 
     //     for (int i = 0; i < visionInputs.estimate.length; i++) {
-    //       if (visionInputs.estimate[i].equals(new Pose2d())) continue; // Camera i has no estimate
+    //       if (visionInputs.estimate[i].equals(new Pose2d())) continue; // Camera i has no
+    // estimate
     //       else if (stdDeviations.size() <= i || visionInputs.timestampArray.length <= i)
     //         continue; // Avoids index out of bounds exceptions
     //       else {
@@ -286,7 +285,6 @@ public class Drive extends SubsystemBase {
     //       }
     //     });
   }
-
 
   /**
    * A command that automatically aligns to the closest reef position
