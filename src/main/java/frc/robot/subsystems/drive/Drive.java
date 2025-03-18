@@ -55,8 +55,8 @@ import frc.robot.Constants.Mode;
 import frc.robot.FieldConstants;
 import frc.robot.commands.AlignToPose;
 import frc.robot.commands.DriveCommands;
+import frc.robot.subsystems.vision.LimelightHelpers;
 import frc.robot.subsystems.vision.VisionIOInputsAutoLogged;
-import frc.robot.subsystems.vision.VisionIOLimelight;
 import frc.robot.util.AllianceFlipUtil;
 import frc.robot.util.LocalADStarAK;
 import java.util.concurrent.locks.Lock;
@@ -73,7 +73,7 @@ public class Drive extends SubsystemBase {
   private final Alert gyroDisconnectedAlert =
       new Alert("Disconnected gyro, using kinematics as fallback.", AlertType.kError);
 
-  private final VisionIOLimelight visionIO;
+  // private final VisionIOLimelight visionIO;
   private final VisionIOInputsAutoLogged visionInputs = new VisionIOInputsAutoLogged();
 
   private SwerveDriveKinematics kinematics = new SwerveDriveKinematics(moduleTranslations);
@@ -103,15 +103,12 @@ public class Drive extends SubsystemBase {
       ModuleIO flModuleIO,
       ModuleIO frModuleIO,
       ModuleIO blModuleIO,
-      ModuleIO brModuleIO,
-      VisionIOLimelight visionIO) {
+      ModuleIO brModuleIO) {
     this.gyroIO = gyroIO;
     modules[0] = new Module(flModuleIO, 0);
     modules[1] = new Module(frModuleIO, 1);
     modules[2] = new Module(blModuleIO, 2);
     modules[3] = new Module(brModuleIO, 3);
-
-    this.visionIO = visionIO;
 
     // Usage reporting for swerve template
     HAL.report(tResourceType.kResourceType_RobotDrive, tInstances.kRobotDriveSwerve_AdvantageKit);
@@ -160,8 +157,6 @@ public class Drive extends SubsystemBase {
             new SysIdRoutine.Mechanism(
                 (voltage) -> runCharacterization(voltage.in(Volts)), null, this));
   }
-
-  
 
   @Override
   public void periodic() {
@@ -223,7 +218,7 @@ public class Drive extends SubsystemBase {
 
     if (DriveConstants.useVision) {
       poseEstimator.update(gyroIO.getRotation2D(), getModulePositions());
-      visionIO.updateOdometry(poseEstimator, gyroIO);
+      updateOdometry(poseEstimator, gyroIO);
     }
 
     // if (DriveConstants.useVision) {
@@ -284,6 +279,56 @@ public class Drive extends SubsystemBase {
     //         builder.addDoubleProperty("Robot Angle", () -> getRotation().getRadians(), null);
     //       }
     //     });
+  }
+
+  public void updateOdometry(SwerveDrivePoseEstimator poseEstimator, GyroIO gyroIO) {
+
+    boolean useMegaTag2 = true; // set to false to use MegaTag1
+    boolean doRejectUpdate = false;
+    if (useMegaTag2 == false) {
+      LimelightHelpers.PoseEstimate mt1 = LimelightHelpers.getBotPoseEstimate_wpiBlue("limelight");
+
+      if (mt1.tagCount == 1 && mt1.rawFiducials.length == 1) {
+        if (mt1.rawFiducials[0].ambiguity > .7) {
+          doRejectUpdate = true;
+        }
+        if (mt1.rawFiducials[0].distToCamera > 3) {
+          doRejectUpdate = true;
+        }
+      }
+      if (mt1.tagCount == 0) {
+        doRejectUpdate = true;
+      }
+
+      if (!doRejectUpdate) {
+        poseEstimator.setVisionMeasurementStdDevs(VecBuilder.fill(.5, .5, 9999999));
+        poseEstimator.addVisionMeasurement(mt1.pose, mt1.timestampSeconds);
+      }
+    } else if (useMegaTag2 == true) {
+      LimelightHelpers.SetRobotOrientation(
+          "limelight",
+          poseEstimator.getEstimatedPosition().getRotation().getDegrees(),
+          0,
+          0,
+          0,
+          0,
+          0);
+      LimelightHelpers.PoseEstimate mt2 =
+          LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight");
+      if (Math.abs(gyroIO.getRate())
+          > 720) // if our angular velocity is greater than 720 degrees per second, ignore vision
+      // updates
+      {
+        doRejectUpdate = true;
+      }
+      if (mt2.tagCount == 0) {
+        doRejectUpdate = true;
+      }
+      if (!doRejectUpdate) {
+        poseEstimator.setVisionMeasurementStdDevs(VecBuilder.fill(.7, .7, 9999999));
+        poseEstimator.addVisionMeasurement(mt2.pose, mt2.timestampSeconds);
+      }
+    }
   }
 
   /**

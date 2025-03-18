@@ -37,7 +37,6 @@ import frc.robot.subsystems.drive.ModuleIOSpark;
 import frc.robot.subsystems.elevator.Elevator;
 import frc.robot.subsystems.elevator.ElevatorConstants;
 import frc.robot.subsystems.elevator.ElevatorModule;
-import frc.robot.subsystems.vision.VisionIOLimelight;
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 
 /**
@@ -79,8 +78,8 @@ public class RobotContainer {
                 new ModuleIOSpark(0),
                 new ModuleIOSpark(1),
                 new ModuleIOSpark(2),
-                new ModuleIOSpark(3),
-                new VisionIOLimelight());
+                new ModuleIOSpark(3));
+        // new VisionIOLimelight());
         break;
 
       case SIM:
@@ -91,9 +90,9 @@ public class RobotContainer {
                 new ModuleIOSim(),
                 new ModuleIOSim(),
                 new ModuleIOSim(),
-                new ModuleIOSim(),
-                // new VisionIOSim());
-                new VisionIOLimelight());
+                new ModuleIOSim());
+        // new VisionIOSim());
+        // new VisionIOLimelight());
         break;
 
       default:
@@ -104,9 +103,9 @@ public class RobotContainer {
                 new ModuleIO() {},
                 new ModuleIO() {},
                 new ModuleIO() {},
-                new ModuleIO() {},
-                // new VisionIO() {});
-                new VisionIOLimelight());
+                new ModuleIO() {});
+        // new VisionIO() {});
+        // new VisionIOLimelight());
         break;
     }
 
