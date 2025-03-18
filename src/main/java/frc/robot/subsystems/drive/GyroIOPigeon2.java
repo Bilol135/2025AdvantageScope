@@ -59,4 +59,14 @@ public class GyroIOPigeon2 implements GyroIO {
     yawTimestampQueue.clear();
     yawPositionQueue.clear();
   }
+
+  @Override
+  public Rotation2d getRotation2D() {
+    return Rotation2d.fromDegrees(yaw.getValueAsDouble());
+  }
+
+  @Override
+  public int getRate() {
+    return (int) yawVelocity.getValueAsDouble();
+  }
 }

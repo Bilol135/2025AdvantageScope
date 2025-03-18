@@ -26,6 +26,7 @@ import edu.wpi.first.hal.FRCNetComm.tInstances;
 import edu.wpi.first.hal.FRCNetComm.tResourceType;
 import edu.wpi.first.hal.HAL;
 import edu.wpi.first.math.Matrix;
+import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -38,6 +39,7 @@ import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -54,8 +56,10 @@ import frc.robot.Constants.Mode;
 import frc.robot.FieldConstants;
 import frc.robot.commands.AlignToPose;
 import frc.robot.commands.DriveCommands;
+import frc.robot.subsystems.vision.LimelightHelpers;
 import frc.robot.subsystems.vision.VisionIO;
 import frc.robot.subsystems.vision.VisionIOInputsAutoLogged;
+import frc.robot.subsystems.vision.VisionIOLimelight;
 import frc.robot.util.AllianceFlipUtil;
 import frc.robot.util.LocalADStarAK;
 import java.util.List;
@@ -73,7 +77,7 @@ public class Drive extends SubsystemBase {
   private final Alert gyroDisconnectedAlert =
       new Alert("Disconnected gyro, using kinematics as fallback.", AlertType.kError);
 
-  private final VisionIO visionIO;
+  private final VisionIOLimelight visionIO;
   private final VisionIOInputsAutoLogged visionInputs = new VisionIOInputsAutoLogged();
 
   private SwerveDriveKinematics kinematics = new SwerveDriveKinematics(moduleTranslations);
@@ -86,7 +90,13 @@ public class Drive extends SubsystemBase {
         new SwerveModulePosition()
       };
   private SwerveDrivePoseEstimator poseEstimator =
-      new SwerveDrivePoseEstimator(kinematics, rawGyroRotation, lastModulePositions, new Pose2d());
+      new SwerveDrivePoseEstimator(
+          kinematics,
+          rawGyroRotation,
+          lastModulePositions,
+          new Pose2d(),
+          VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5)),
+          VecBuilder.fill(0.5, 0.5, Units.degreesToRadians(30)));
 
   // Odometry class for tracking robot pose
   private SwerveDriveOdometry odometry =
@@ -98,7 +108,7 @@ public class Drive extends SubsystemBase {
       ModuleIO frModuleIO,
       ModuleIO blModuleIO,
       ModuleIO brModuleIO,
-      VisionIO visionIO) {
+      VisionIOLimelight visionIO) {
     this.gyroIO = gyroIO;
     modules[0] = new Module(flModuleIO, 0);
     modules[1] = new Module(frModuleIO, 1);
@@ -213,28 +223,32 @@ public class Drive extends SubsystemBase {
     // Update gyro alert
     gyroDisconnectedAlert.set(!gyroInputs.connected && Constants.currentMode != Mode.SIM);
 
-    boolean useVision = false;
-    if (useVision) {
-      if (RobotBase.isSimulation()) {
-        visionIO.updateInputs(visionInputs, getPose(), odometry.getPoseMeters());
-      } else {
-        visionIO.updateInputs(visionInputs, getPose(), rawGyroRotation);
-      }
-      Logger.processInputs("Vision", visionInputs);
-      if (visionInputs.hasEstimate) {
-        List<Matrix<N3, N1>> stdDeviations = visionIO.getStdArray(visionInputs, getPose());
-
-        for (int i = 0; i < visionInputs.estimate.length; i++) {
-          if (visionInputs.estimate[i].equals(new Pose2d())) continue; // Camera i has no estimate
-          else if (stdDeviations.size() <= i || visionInputs.timestampArray.length <= i)
-            continue; // Avoids index out of bounds exceptions
-          else {
-            poseEstimator.addVisionMeasurement(
-                visionInputs.estimate[i], visionInputs.timestampArray[i], stdDeviations.get(i));
-          }
-        }
-      }
+    if (DriveConstants.useVision) {
+    poseEstimator.update(gyroIO.getRotation2D(), getModulePositions());
+    visionIO.updateOdometry(poseEstimator, gyroIO);
     }
+
+    // if (DriveConstants.useVision) {
+    //   if (RobotBase.isSimulation()) {
+    //     visionIO.updateInputs(visionInputs, getPose(), odometry.getPoseMeters());
+    //   } else {
+    //     visionIO.updateInputs(visionInputs, getPose(), rawGyroRotation);
+    //   }
+    //   Logger.processInputs("Vision", visionInputs);
+    //   if (visionInputs.hasEstimate) {
+    //     List<Matrix<N3, N1>> stdDeviations = visionIO.getStdArray(visionInputs, getPose());
+
+    //     for (int i = 0; i < visionInputs.estimate.length; i++) {
+    //       if (visionInputs.estimate[i].equals(new Pose2d())) continue; // Camera i has no estimate
+    //       else if (stdDeviations.size() <= i || visionInputs.timestampArray.length <= i)
+    //         continue; // Avoids index out of bounds exceptions
+    //       else {
+    //         poseEstimator.addVisionMeasurement(
+    //             visionInputs.estimate[i], visionInputs.timestampArray[i], stdDeviations.get(i));
+    //       }
+    //     }
+    //   }
+    // }
 
     SmartDashboard.putNumber("Gyro Yaw", getRotation().getDegrees());
     SmartDashboard.putNumber(
@@ -272,6 +286,8 @@ public class Drive extends SubsystemBase {
     //       }
     //     });
   }
+
+
   /**
    * A command that automatically aligns to the closest reef position
    *
@@ -332,12 +348,12 @@ public class Drive extends SubsystemBase {
         true);
   }
 
-  public void applySlowMode(){
-      speedIndex = kslowModeConstant;
+  public void applySlowMode() {
+    speedIndex = kslowModeConstant;
   }
 
-  public void resetSpeedIndex(){
-      speedIndex = 1;
+  public void resetSpeedIndex() {
+    speedIndex = 1;
   }
 
   /**

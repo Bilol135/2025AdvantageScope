@@ -13,9 +13,7 @@
 
 package frc.robot.commands;
 
-import static frc.robot.subsystems.drive.DriveConstants.kslowModeConstant;
 import static frc.robot.subsystems.drive.DriveConstants.speedIndex;
-
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.ProfiledPIDController;
@@ -53,7 +51,6 @@ public class DriveCommands {
   private static final double WHEEL_RADIUS_MAX_VELOCITY = 0.25; // Rad/Sec
   private static final double WHEEL_RADIUS_RAMP_RATE = 0.05; // Rad/Sec^2
 
-
   private DriveCommands() {}
 
   private static Translation2d getLinearVelocityFromJoysticks(double x, double y) {
@@ -77,16 +74,20 @@ public class DriveCommands {
       Drive drive,
       DoubleSupplier xSupplier,
       DoubleSupplier ySupplier,
-      DoubleSupplier omegaSupplier) {
+      DoubleSupplier omegaSupplier,
+      DoubleSupplier speedSupplier) {
     return Commands.run(
         () -> {
           // Get linear velocity
           Translation2d linearVelocity =
               getLinearVelocityFromJoysticks(
-                  xSupplier.getAsDouble() * speedIndex, ySupplier.getAsDouble() * speedIndex);
+                  xSupplier.getAsDouble() * (1 - speedSupplier.getAsDouble() / 2),
+                  ySupplier.getAsDouble() * (1 - speedSupplier.getAsDouble() / 2));
 
           // Apply rotation deadband
-          double omega = MathUtil.applyDeadband(omegaSupplier.getAsDouble() * speedIndex, DEADBAND);
+          double omega =
+              MathUtil.applyDeadband(
+                  omegaSupplier.getAsDouble() * (1 - speedSupplier.getAsDouble() / 2), DEADBAND);
 
           // Square rotation value for more precise control
           omega = Math.copySign(omega * omega, omega);
@@ -119,7 +120,8 @@ public class DriveCommands {
       Drive drive,
       DoubleSupplier xSupplier,
       DoubleSupplier ySupplier,
-      Supplier<Rotation2d> rotationSupplier) {
+      Supplier<Rotation2d> rotationSupplier,
+      DoubleSupplier speedSupplier) {
 
     // Create PID controller
     ProfiledPIDController angleController =
@@ -136,7 +138,8 @@ public class DriveCommands {
               // Get linear velocity
               Translation2d linearVelocity =
                   getLinearVelocityFromJoysticks(
-                      xSupplier.getAsDouble() * speedIndex, ySupplier.getAsDouble() * speedIndex);
+                      xSupplier.getAsDouble() * (1 - speedSupplier.getAsDouble() / 2),
+                      ySupplier.getAsDouble() * (1 - speedSupplier.getAsDouble() / 2));
 
               // Calculate angular speed
               double omega =
@@ -304,16 +307,11 @@ public class DriveCommands {
     double gyroDelta = 0.0;
   }
 
-  public static double getSlowMode(){
+  public static double getSlowMode() {
     return speedIndex;
   }
 
-public static StartEndCommand slowMode(Drive drive) {
-  return new StartEndCommand(
-    () -> drive.applySlowMode(), 
-    () -> drive.resetSpeedIndex(), 
-    drive);
-}
-
-
+  public static StartEndCommand slowMode(Drive drive) {
+    return new StartEndCommand(() -> drive.applySlowMode(), () -> drive.resetSpeedIndex(), drive);
+  }
 }

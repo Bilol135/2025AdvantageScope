@@ -14,12 +14,11 @@
 package frc.robot;
 
 import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.auto.NamedCommands;
 import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
-import edu.wpi.first.wpilibj2.command.StartEndCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.commands.DriveCommands;
@@ -39,6 +38,7 @@ import frc.robot.subsystems.elevator.Elevator;
 import frc.robot.subsystems.elevator.ElevatorConstants;
 import frc.robot.subsystems.elevator.ElevatorModule;
 import frc.robot.subsystems.vision.VisionIO;
+import frc.robot.subsystems.vision.VisionIOLimelight;
 import frc.robot.subsystems.vision.VisionIOPhoton;
 import frc.robot.subsystems.vision.VisionIOSim;
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
@@ -66,6 +66,13 @@ public class RobotContainer {
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
+    NamedCommands.registerCommand(
+        "L2",
+        new SequentialCommandGroup(
+            m_elevator.elevatorToLevel2().alongWith(m_coralIntake.turntoNeutral()).withTimeout(1)));
+
+    NamedCommands.registerCommand("shoot coral", m_coralIntake.outtakeCoral());
+
     switch (Constants.currentMode) {
       case REAL:
         // Real robot, instantiate hardware IO implementations
@@ -76,7 +83,7 @@ public class RobotContainer {
                 new ModuleIOSpark(1),
                 new ModuleIOSpark(2),
                 new ModuleIOSpark(3),
-                new VisionIOPhoton());
+                new VisionIOLimelight());
         break;
 
       case SIM:
@@ -88,7 +95,8 @@ public class RobotContainer {
                 new ModuleIOSim(),
                 new ModuleIOSim(),
                 new ModuleIOSim(),
-                new VisionIOSim());
+                //new VisionIOSim());
+                new VisionIOLimelight());
         break;
 
       default:
@@ -100,7 +108,8 @@ public class RobotContainer {
                 new ModuleIO() {},
                 new ModuleIO() {},
                 new ModuleIO() {},
-                new VisionIO() {});
+               // new VisionIO() {});
+               new VisionIOLimelight());
         break;
     }
 
@@ -134,15 +143,17 @@ public class RobotContainer {
    * edu.wpi.first.wpilibj2.command.button.JoystickButton}.
    */
   private void configureButtonBindings() {
+
     // Default command, normal field-relative drive
     drive.setDefaultCommand(
         DriveCommands.joystickDrive(
             drive,
             () -> Dcontroller.getLeftY(),
             () -> Dcontroller.getLeftX(),
-            () -> -Dcontroller.getRightX()));
+            () -> -Dcontroller.getRightX(),
+            () -> Dcontroller.getRightTriggerAxis()));
 
-    Dcontroller.rightTrigger().whileTrue(DriveCommands.slowMode(drive));
+    // Dcontroller.rightTrigger().whileTrue(DriveCommands.slowMode(drive));
 
     // //when bottom on Dpad is pressed, the level 0 sequence is run
     m_operatorController.povDown().onTrue(L0);
@@ -162,8 +173,8 @@ public class RobotContainer {
         .y()
         .onTrue(
             m_elevator
-                .setElevatorPosition(4.3)
-                .alongWith(m_coralIntake.setPivotPosition(4.9).withTimeout(1)));
+                .setElevatorPosition(4.5)
+                .alongWith(m_coralIntake.setPivotPosition(5.1).withTimeout(1)));
 
     // when the A button is held down, the elevator is set to level 0 and the coral intake is set to
     // pivot position 0
@@ -206,6 +217,7 @@ public class RobotContainer {
   }
   // sequantial command group for level 0 sco(ring, scores the corala and then brings elevator back
   // to 0
+
   SequentialCommandGroup L0 =
       new SequentialCommandGroup(
           m_elevator.elevatorToLevel0().alongWith(m_coralIntake.turntoNeutral()).withTimeout(1)
@@ -235,7 +247,10 @@ public class RobotContainer {
   // to 0
   SequentialCommandGroup L3 =
       new SequentialCommandGroup(
-          m_elevator.elevatorToLevel3().alongWith(m_coralIntake.setPivotPosition(2)).withTimeout(1)
+          m_elevator
+              .elevatorToLevel3()
+              .alongWith(m_coralIntake.setPivotPosition(2.8))
+              .withTimeout(1)
           // m_coralIntake.outtakeCoral().withTimeout(1.5),
           // m_elevator.resetElevatorPosition()
           );

@@ -21,11 +21,12 @@ import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.util.Units;
 
 public class DriveConstants {
-
+    
+  public static boolean useVision = false;
   public static final double alignSpeed = 3;
   public static final double alignAngularSpeed = 2.5 * Math.PI; // radians/second
 
-  public static final double maxSpeedMetersPerSec = 4.8 / 2;
+  public static final double maxSpeedMetersPerSec = 4;
   public static final double odometryFrequency = 100.0; // Hz
   public static final double trackWidth = Units.inchesToMeters(26.5);
   public static final double wheelBase = Units.inchesToMeters(26.5);

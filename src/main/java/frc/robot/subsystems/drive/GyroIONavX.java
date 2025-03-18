@@ -213,4 +213,14 @@ public class GyroIONavX implements GyroIO {
   public ADXRS450_Gyro getGyro() {
     return gyro;
   }
+
+  @Override
+  public Rotation2d getRotation2D() {
+    return Rotation2d.fromDegrees(getYawAngle());
+  }
+
+  @Override
+  public int getRate() {
+    return (int) getYawAngleVelocity();
+  }
 }

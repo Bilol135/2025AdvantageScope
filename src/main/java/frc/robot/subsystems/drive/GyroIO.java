@@ -35,4 +35,13 @@ public interface GyroIO {
   public default void resetYaw() {}
 
   public default void setYawAngle(double angle) {}
+
+  public default Rotation2d getRotation2D() {
+    return null;
+  }
+
+  public default int getRate() {
+    return 0;
+  }
+  ;
 }
