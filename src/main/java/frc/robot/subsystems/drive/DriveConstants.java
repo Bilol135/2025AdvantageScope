@@ -22,7 +22,7 @@ import edu.wpi.first.math.util.Units;
 
 public class DriveConstants {
     
-  public static boolean useVision = false;
+  public static boolean useVision = true;
   public static final double alignSpeed = 3;
   public static final double alignAngularSpeed = 2.5 * Math.PI; // radians/second
 

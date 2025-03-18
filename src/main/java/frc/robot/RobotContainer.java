@@ -201,6 +201,9 @@ public class RobotContainer {
     Dcontroller.a().whileTrue(m_climber.climbDown());
     Dcontroller.y().whileTrue(m_climber.climbUp());
 
+    // Dcontroller.x().onTrue(drive.alignToReef());
+    // Dcontroller.b().onTrue(drive.alignToReef());
+
     // when the start button (button with the 3 lines) is held down, the coral pivot motor spins to
     // move the pivot downwards
     m_operatorController
