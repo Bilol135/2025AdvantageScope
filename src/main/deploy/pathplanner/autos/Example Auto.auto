@@ -11,13 +11,13 @@
               {
                 "type": "path",
                 "data": {
-                  "pathName": "New Path"
+                  "pathName": "New New New Path"
                 }
               },
               {
                 "type": "named",
                 "data": {
-                  "name": "L2"
+                  "name": "L1"
                 }
               }
             ]
@@ -32,7 +32,13 @@
         {
           "type": "wait",
           "data": {
-            "waitTime": 3.0
+            "waitTime": 2.0
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "stop coral"
           }
         }
       ]

@@ -2,7 +2,7 @@
 
 Welcome to the Marquee Control Library, which is used to send commands
 from the RoboRio to the ESP32 that controls the 8 x 32 WS2812B
-individually addressable LED array. 
+individually addressable LED array.
 
 ## Overview
 
@@ -38,14 +38,14 @@ Arduino libraries and to generate code for the ESP32 S2.
 
 To use the api:
 
-1. Install an Arduino IDE onto 
+1. Install an Arduino IDE onto
 2. Wire the ESP32 to the Display Panel as described in the
    [Marquee Library Documentation](https://github.com/frc-team7587/Marquee-1/blob/main/TestLedMatrix/README.md#wiring-the-display-panel).
 3. Wire the RoboRio to the ESP32 as described in the
    [Marquee Library Documentation](https://github.com/frc-team7587/Marquee-1/blob/main/TestLedMatrix/README.md#wiring-the-display-panel).
    If you are using both the 5 Volt and 3.3 Volt buck converters,
    **DO NOT MIX THEM UP** as you will destroy the ESP32 if you do.
-   
+
 4. Incorporate the Marquee library into the robot control software.
    Invoke the API as desired.
 5. Enjoy the fruits of your labor.
@@ -84,7 +84,7 @@ empty string for text values, and allows the users to set:
 * Foreground Red, Green, and Blue, the components of the foreground
   color. Note that text is displayed in the foreground color.
 * Background Red, Green, and Blue, the components of the background
-  color. 
+  color.
 * Delay 1 and Delay 2, delays to apply to the display. Delay meanings
   vary by command. For scrolling text, delay 1 specifies the dwell time
   for the initial display, and delay 2 specifies the interval between
@@ -108,7 +108,7 @@ Commands are documented below.
 Display commands are sent as pipe delimited character sequences of
 128 or fewer bytes. The sequence includes the command,
 display text (if any), foreground and background colors,
-and delays. 
+and delays.
 
 :warning: the LED matrix consumes 75 watts when run at full power,equivalent to 750 watts incandescent. Running at full power
 significantly shortens LED lifetime. Select RGB intensities
@@ -124,11 +124,11 @@ The channel is (i.e. slave select pin) is set at construction.
 
 ### `UsbDisplayConnection`
 
-The `UsbDisplayConnection` class is a 
-[`DisplayConnection`](#displayconnection) 
+The `UsbDisplayConnection` class is a
+[`DisplayConnection`](#displayconnection)
 implementation that sends commands over a USB serial connection,
 a USB connection that emulates a asychronous serial terminal,
-a.k.a. a serial port. 
+a.k.a. a serial port.
 
 ### `UsbSerialDeviceList`
 
@@ -140,7 +140,7 @@ paths of the form `/dev/ttyUSBn`, where `n` is 0, 1, or 2.
 The `UsbSerialPortBuilder` builds `SerialPort` instances that connect to
 USB serial devices, which are file
 paths of the form `/dev/ttyUSBn`, where `n` is 0, 1, or 2. Note that
-the `SerialPort` class is provided by the WPI library. 
+the `SerialPort` class is provided by the WPI library.
 
 ### VacuousDisplayConnection
 
@@ -186,7 +186,7 @@ Parameters:
 ### Single Color Fill
 
 The color fill command sets every pixel on the panel to a
-specified color. 
+specified color.
 
 Parameters:
 
@@ -206,7 +206,7 @@ This command has not been implemented. Do not use it.
 ### Rippling Rainbow
 
 Displays a rainbow pattern that ripples from left to right. New
-colors enter from the left and disappear from the right. 
+colors enter from the left and disappear from the right.
 
 Parameters:
 
@@ -230,7 +230,7 @@ so it looks like an aray. At the very lowest level, pixels are
 addressed linearly, indexed from 0 to 255.
 
 The pattern cycles through a sequence of standard colors, changing
-colors between traversals. 
+colors between traversals.
 
 Parameters:
 
@@ -276,13 +276,13 @@ Parameters:
 | Delay 1    | N/A                                         |
 | Delay 2    | N/A                                         |
 
-For example, to display "7587" in red on a black background, 
+For example, to display "7587" in red on a black background,
 set the display text to `"7587"` and foreground red to 63.
 
 ### Text Scroll
 
 The text scroll displays the start of the text, then shifts
-the text to the left one column at a time. 
+the text to the left one column at a time.
 
 Parameters:
 
@@ -299,7 +299,7 @@ Parameters:
 
 The text crawl shifts text in from the right one column at a
 time. Text crawls smoothly to the left until its last character
-vanishes completely, whereupon scroll starts again. 
+vanishes completely, whereupon scroll starts again.
 
 
 Parameters:
@@ -312,5 +312,3 @@ Parameters:
 | Background | Non-Text (background) color                 |
 | Delay 1    | Time between column shifts                  |
 | Delay 2    | N/A                                         |
-
-
