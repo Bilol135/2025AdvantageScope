@@ -12,6 +12,12 @@ import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.util.Units;
 
 public class VisionConstants {
+  /**
+   * Camera offsets (inch)
+   * l2: 12.524x, 13.495y, 8.828z
+   * l4: 12.383x, 13.739y, 9.301z
+   */
+
   public static final String[] camNames = {
     "Front_Camera", "Left_Camera", "Right_Camera", "Back_Camera"
   };
