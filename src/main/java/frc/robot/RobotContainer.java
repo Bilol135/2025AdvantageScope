@@ -87,7 +87,7 @@ public class RobotContainer {
         new SequentialCommandGroup(
             m_elevator.elevatorToLevel4().alongWith(m_coralIntake.turntoNeutral()).withTimeout(1)));
 
-    NamedCommands.registerCommand("shoot coral", m_coralIntake.outtakeCoral().withTimeout(5));
+    NamedCommands.registerCommand("shoot coral", m_coralIntake.outtakeCoral().withTimeout(3));
 
     switch (Constants.currentMode) {
       case REAL:
@@ -189,7 +189,7 @@ public class RobotContainer {
         .y()
         .onTrue(
             m_elevator
-                .setElevatorPosition(4.4)
+                .setElevatorPosition(4.3)
                 .alongWith(m_coralIntake.setPivotPosition(5.1).withTimeout(1)));
 
     // when the A button is held down, the elevator is set to level 0 and the coral intake is set to
@@ -230,6 +230,13 @@ public class RobotContainer {
     // when the back button (button with the 3 lines) is held down, the coral pivot motor spins to
     // move the pivot upwards
     m_operatorController.start().and(m_operatorController.x()).whileTrue(m_algaeIntake.turntoUp());
+
+    // when the back button (button with the 3 lines) is held down, the coral pivot motor spins to
+    // move the pivot upwards
+    m_operatorController
+        .start()
+        .and(m_operatorController.b())
+        .whileTrue(m_algaeIntake.turntoDown());
 
     // sets the pivot position for intaking the coral from the player position
     m_operatorController.x().onTrue(m_coralIntake.setPivotPosition(4.5));

@@ -33,6 +33,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Twist2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.kinematics.Odometry;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
@@ -45,6 +46,7 @@ import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -70,6 +72,7 @@ public class Drive extends SubsystemBase {
   private final GyroIOInputsAutoLogged gyroInputs = new GyroIOInputsAutoLogged();
   private final Module[] modules = new Module[4]; // FL, FR, BL, BR
   private final SysIdRoutine sysId;
+  private final Field2d m_field = new Field2d();
   private final Alert gyroDisconnectedAlert =
       new Alert("Disconnected gyro, using kinematics as fallback.", AlertType.kError);
 
@@ -85,14 +88,14 @@ public class Drive extends SubsystemBase {
         new SwerveModulePosition(),
         new SwerveModulePosition()
       };
-  private SwerveDrivePoseEstimator poseEstimator =
-      new SwerveDrivePoseEstimator(
-          kinematics,
-          rawGyroRotation,
-          lastModulePositions,
-          new Pose2d(),
-          VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5)),
-          VecBuilder.fill(0.5, 0.5, Units.degreesToRadians(30)));
+  // private SwerveDrivePoseEstimator poseEstimator =
+  //     new SwerveDrivePoseEstimator(
+  //         kinematics,
+  //         rawGyroRotation,
+  //         lastModulePositions,
+  //         new Pose2d(),
+  //         VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5)),
+  //         VecBuilder.fill(0.5, 0.5, Units.degreesToRadians(30)));
 
   // Odometry class for tracking robot pose
   private SwerveDriveOdometry odometry =
@@ -109,6 +112,8 @@ public class Drive extends SubsystemBase {
     modules[1] = new Module(frModuleIO, 1);
     modules[2] = new Module(blModuleIO, 2);
     modules[3] = new Module(brModuleIO, 3);
+
+    SmartDashboard.putData("Field", m_field);
 
     // Usage reporting for swerve template
     HAL.report(tResourceType.kResourceType_RobotDrive, tInstances.kRobotDriveSwerve_AdvantageKit);
@@ -210,16 +215,16 @@ public class Drive extends SubsystemBase {
       }
 
       // Apply update
-      poseEstimator.updateWithTime(Timer.getFPGATimestamp(), rawGyroRotation, modulePositions);
+      //poseEstimator.updateWithTime(Timer.getFPGATimestamp(), rawGyroRotation, modulePositions);
     }
 
     // Update gyro alert
     gyroDisconnectedAlert.set(!gyroInputs.connected && Constants.currentMode != Mode.SIM);
 
-    if (DriveConstants.useVision) {
-      poseEstimator.update(gyroIO.getRotation2D(), getModulePositions());
-      updateOdometry(poseEstimator, gyroIO);
-    }
+    // if (DriveConstants.useVision) {
+    //   poseEstimator.update(gyroIO.getRotation2D(), getModulePositions());
+    //   updateOdometry(poseEstimator, gyroIO);
+    // }
 
     // if (DriveConstants.useVision) {
     //   if (RobotBase.isSimulation()) {
@@ -246,8 +251,11 @@ public class Drive extends SubsystemBase {
 
     SmartDashboard.putNumber("Gyro Yaw", getRotation().getDegrees());
     SmartDashboard.putNumber(
-        "Pose Angle", poseEstimator.getEstimatedPosition().getRotation().getDegrees());
+        "Pose Angle", odometry.getPoseMeters().getRotation().getDegrees());
     SmartDashboard.putNumber("SlowMode", DriveCommands.getSlowMode());
+
+    m_field.setRobotPose(odometry.getPoseMeters());
+
     // Elastic setup
     // SmartDashboard.putData(
     //     "Swerve Drive",
@@ -474,9 +482,9 @@ public class Drive extends SubsystemBase {
    * @param visionPose The pose of the robot as measured by the vision camera.
    * @param timestamp The timestamp of the vision measurement in seconds.
    */
-  public void addVisionMeasurement(Pose2d visionPose, double timestamp) {
-    poseEstimator.addVisionMeasurement(visionPose, timestamp);
-  }
+  // public void addVisionMeasurement(Pose2d visionPose, double timestamp) {
+  //   poseEstimator.addVisionMeasurement(visionPose, timestamp);
+  // }
 
   /** Returns a command to run a quasistatic test in the specified direction. */
   public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
@@ -536,7 +544,7 @@ public class Drive extends SubsystemBase {
   /** Returns the current odometry pose. */
   @AutoLogOutput(key = "Odometry/Robot")
   public Pose2d getPose() {
-    return poseEstimator.getEstimatedPosition();
+    return odometry.getPoseMeters();
   }
 
   /** Returns the current odometry rotation. */
@@ -555,18 +563,18 @@ public class Drive extends SubsystemBase {
 
     // Yes I know it says that you don't need to reset the gyro rotation, but it tweaks out if you
     // don't
-    poseEstimator.resetPosition(rawGyroRotation, getModulePositions(), pose);
+    //poseEstimator.resetPosition(rawGyroRotation, getModulePositions(), pose);
     odometry.resetPosition(rawGyroRotation, getModulePositions(), pose);
   }
 
-  /** Adds a new timestamped vision measurement. */
-  public void addVisionMeasurement(
-      Pose2d visionRobotPoseMeters,
-      double timestampSeconds,
-      Matrix<N3, N1> visionMeasurementStdDevs) {
-    poseEstimator.addVisionMeasurement(
-        visionRobotPoseMeters, timestampSeconds, visionMeasurementStdDevs);
-  }
+  // /** Adds a new timestamped vision measurement. */
+  // public void addVisionMeasurement(
+  //     Pose2d visionRobotPoseMeters,
+  //     double timestampSeconds,
+  //     Matrix<N3, N1> visionMeasurementStdDevs) {
+  //   poseEstimator.addVisionMeasurement(
+  //       visionRobotPoseMeters, timestampSeconds, visionMeasurementStdDevs);
+  // }
 
   /** Returns the maximum linear speed in meters per sec. */
   public double getMaxLinearSpeedMetersPerSec() {
