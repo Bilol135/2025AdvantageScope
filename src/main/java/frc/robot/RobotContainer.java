@@ -15,6 +15,8 @@ package frc.robot;
 
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
+import edu.wpi.first.cameraserver.CameraServer;
+import edu.wpi.first.cscore.UsbCamera;
 import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -60,14 +62,32 @@ public class RobotContainer {
   // Dashboard inputs
   private final LoggedDashboardChooser<Command> autoChooser;
 
+  // rear camerra/ climber cam
+  UsbCamera ClimberCam = CameraServer.startAutomaticCapture();
+
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
+    NamedCommands.registerCommand(
+        "L1",
+        new SequentialCommandGroup(
+            m_elevator.elevatorToLevel1().alongWith(m_coralIntake.turntoNeutral()).withTimeout(1)));
+
     NamedCommands.registerCommand(
         "L2",
         new SequentialCommandGroup(
             m_elevator.elevatorToLevel2().alongWith(m_coralIntake.turntoNeutral()).withTimeout(1)));
 
-    NamedCommands.registerCommand("shoot coral", m_coralIntake.outtakeCoral());
+    NamedCommands.registerCommand(
+        "L3",
+        new SequentialCommandGroup(
+            m_elevator.elevatorToLevel3().alongWith(m_coralIntake.turntoNeutral()).withTimeout(1)));
+
+    NamedCommands.registerCommand(
+        "L4",
+        new SequentialCommandGroup(
+            m_elevator.elevatorToLevel4().alongWith(m_coralIntake.turntoNeutral()).withTimeout(1)));
+
+    NamedCommands.registerCommand("shoot coral", m_coralIntake.outtakeCoral().withTimeout(5));
 
     switch (Constants.currentMode) {
       case REAL:
@@ -144,24 +164,24 @@ public class RobotContainer {
     drive.setDefaultCommand(
         DriveCommands.joystickDrive(
             drive,
-            () -> Dcontroller.getLeftY(),
-            () -> Dcontroller.getLeftX(),
+            () -> -Dcontroller.getLeftY(),
+            () -> -Dcontroller.getLeftX(),
             () -> -Dcontroller.getRightX(),
             () -> Dcontroller.getRightTriggerAxis()));
 
     // Dcontroller.rightTrigger().whileTrue(DriveCommands.slowMode(drive));
 
     // //when bottom on Dpad is pressed, the level 0 sequence is run
-    m_operatorController.povDown().onTrue(L0);
+    m_operatorController.povDown().onTrue(L1);
 
     // when left on Dpad is pressed, the level 1 sequence is run
-    m_operatorController.povLeft().onTrue(L1);
+    m_operatorController.povLeft().onTrue(L2);
 
     // when right on Dpad is pressed, the level 2 sequence is run
-    m_operatorController.povRight().onTrue(L2);
+    m_operatorController.povRight().onTrue(L3);
 
     // when top on Dpad is pressed, the level 3 sequence is run
-    m_operatorController.povUp().onTrue(L3);
+    m_operatorController.povUp().onTrue(L4);
 
     // when the Y button is held down, the elevator is set to level 2.55 and the coral intake is set
     // to pivot position 5
@@ -169,7 +189,7 @@ public class RobotContainer {
         .y()
         .onTrue(
             m_elevator
-                .setElevatorPosition(4.5)
+                .setElevatorPosition(4.4)
                 .alongWith(m_coralIntake.setPivotPosition(5.1).withTimeout(1)));
 
     // when the A button is held down, the elevator is set to level 0 and the coral intake is set to
@@ -217,15 +237,6 @@ public class RobotContainer {
   // sequantial command group for level 0 sco(ring, scores the corala and then brings elevator back
   // to 0
 
-  SequentialCommandGroup L0 =
-      new SequentialCommandGroup(
-          m_elevator.elevatorToLevel0().alongWith(m_coralIntake.turntoNeutral()).withTimeout(1)
-          // m_coralIntake.outtakeCoral().withTimeout(1.5),
-          // m_elevator.resetElevatorPosition()
-          );
-
-  // sequantial command group for level 1 scoring, scores the corala and then brings elevator back
-  // to 0
   SequentialCommandGroup L1 =
       new SequentialCommandGroup(
           m_elevator.elevatorToLevel1().alongWith(m_coralIntake.turntoNeutral()).withTimeout(1)
@@ -233,7 +244,7 @@ public class RobotContainer {
           // m_elevator.resetElevatorPosition()
           );
 
-  // sequantial command group for level 2 scoring, scores the corala and then brings elevator back
+  // sequantial command group for level 1 scoring, scores the corala and then brings elevator back
   // to 0
   SequentialCommandGroup L2 =
       new SequentialCommandGroup(
@@ -242,12 +253,21 @@ public class RobotContainer {
           // m_elevator.resetElevatorPosition()
           );
 
-  // sequantial command group for level 3 scoring, scores the corala and then brings elevator back
+  // sequantial command group for level 2 scoring, scores the corala and then brings elevator back
   // to 0
   SequentialCommandGroup L3 =
       new SequentialCommandGroup(
+          m_elevator.elevatorToLevel3().alongWith(m_coralIntake.turntoNeutral()).withTimeout(1)
+          // m_coralIntake.outtakeCoral().withTimeout(1.5),
+          // m_elevator.resetElevatorPosition()
+          );
+
+  // sequantial command group for level 3 scoring, scores the corala and then brings elevator back
+  // to 0
+  SequentialCommandGroup L4 =
+      new SequentialCommandGroup(
           m_elevator
-              .elevatorToLevel3()
+              .elevatorToLevel4()
               .alongWith(m_coralIntake.setPivotPosition(2.8))
               .withTimeout(1)
           // m_coralIntake.outtakeCoral().withTimeout(1.5),
