@@ -189,7 +189,7 @@ public class RobotContainer {
         .y()
         .onTrue(
             m_elevator
-                .setElevatorPosition(4.3)
+                .setElevatorPosition(4)
                 .alongWith(m_coralIntake.setPivotPosition(5.1).withTimeout(1)));
 
     // when the A button is held down, the elevator is set to level 0 and the coral intake is set to

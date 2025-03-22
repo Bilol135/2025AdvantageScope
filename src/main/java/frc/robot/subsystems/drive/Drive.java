@@ -25,7 +25,6 @@ import com.pathplanner.lib.util.PathPlannerLogging;
 import edu.wpi.first.hal.FRCNetComm.tInstances;
 import edu.wpi.first.hal.FRCNetComm.tResourceType;
 import edu.wpi.first.hal.HAL;
-import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -33,19 +32,14 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Twist2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
-import edu.wpi.first.math.kinematics.Odometry;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
-import edu.wpi.first.math.numbers.N1;
-import edu.wpi.first.math.numbers.N3;
-import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
-import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -215,7 +209,7 @@ public class Drive extends SubsystemBase {
       }
 
       // Apply update
-      //poseEstimator.updateWithTime(Timer.getFPGATimestamp(), rawGyroRotation, modulePositions);
+      // poseEstimator.updateWithTime(Timer.getFPGATimestamp(), rawGyroRotation, modulePositions);
     }
 
     // Update gyro alert
@@ -250,8 +244,7 @@ public class Drive extends SubsystemBase {
     // }
 
     SmartDashboard.putNumber("Gyro Yaw", getRotation().getDegrees());
-    SmartDashboard.putNumber(
-        "Pose Angle", odometry.getPoseMeters().getRotation().getDegrees());
+    SmartDashboard.putNumber("Pose Angle", odometry.getPoseMeters().getRotation().getDegrees());
     SmartDashboard.putNumber("SlowMode", DriveCommands.getSlowMode());
 
     m_field.setRobotPose(odometry.getPoseMeters());
@@ -549,7 +542,7 @@ public class Drive extends SubsystemBase {
 
   /** Returns the current odometry rotation. */
   public Rotation2d getRotation() {
-    return getPose().getRotation();
+    return gyroIO.getRotation2D();
   }
 
   public double getRobotYaw() {
@@ -563,7 +556,7 @@ public class Drive extends SubsystemBase {
 
     // Yes I know it says that you don't need to reset the gyro rotation, but it tweaks out if you
     // don't
-    //poseEstimator.resetPosition(rawGyroRotation, getModulePositions(), pose);
+    // poseEstimator.resetPosition(rawGyroRotation, getModulePositions(), pose);
     odometry.resetPosition(rawGyroRotation, getModulePositions(), pose);
   }
 
